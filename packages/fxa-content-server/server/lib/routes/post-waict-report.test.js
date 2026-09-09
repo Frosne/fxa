@@ -11,14 +11,12 @@ const postWaictReport = require('./post-waict-report');
 
 
 function build(overrides = {}) {
-  const statsd = { increment: jest.fn() };
   const route = postWaictReport({
     op: 'server.waict.violation',
     path: '/_/waict-violation',
-    statsd,
     ...overrides,
   });
-  return { route, statsd };
+  return { route };
 }
 
 function mockReqRes(body, userAgent = 'Firefox') {
@@ -58,15 +56,12 @@ describe('post-waict-report route', () => {
     expect(res.json).toHaveBeenCalledWith({ success: true });
   });
 
-  it('logs a violation and increments a counter tagged by reason', () => {
-    const { route, statsd } = build();
+  it('logs a violation', () => {
+    const { route } = build();
     const { req, res } = mockReqRes([violationReport()]);
 
     route.process(req, res);
 
-    expect(statsd.increment).toHaveBeenCalledWith('waict.violation', 1, {
-      reason: 'missing_from_manifest',
-    });
     expect(mockLogger.info).toHaveBeenCalledWith(
       'server.waict.violation',
       expect.objectContaining({
@@ -75,36 +70,6 @@ describe('post-waict-report route', () => {
         destination: 'script',
       })
     );
-  });
-
-  it('defaults the statsd reason tag to "unknown" when reason is absent', () => {
-    const { route, statsd } = build();
-    const report = violationReport();
-    delete report.body.reason;
-    const { req, res } = mockReqRes([report]);
-
-    route.process(req, res);
-
-    expect(statsd.increment).toHaveBeenCalledWith('waict.violation', 1, {
-      reason: 'unknown',
-    });
-  });
-
-  it('buckets an unknown reason under "other" to bound tag cardinality', () => {
-    const { route, statsd } = build();
-    const report = violationReport({ reason: 'totally-made-up-reason' });
-    const { req, res } = mockReqRes([report]);
-
-    route.process(req, res);
-
-    expect(statsd.increment).toHaveBeenCalledWith('waict.violation', 1, {
-      reason: 'other',
-    });
-    // The raw reason is still logged (bounded by validation in production).
-    const logged = mockLogger.info.mock.calls.find(
-      (c) => c[0] === 'server.waict.violation'
-    )[1];
-    expect(logged.reason).toBe('totally-made-up-reason');
   });
 
   it('strips email and uid query params from logged URLs', () => {
@@ -131,18 +96,19 @@ describe('post-waict-report route', () => {
   });
 
   it('normalizes a single (non-array) report object', () => {
-    const { route, statsd } = build();
+    const { route } = build();
     const { req, res } = mockReqRes(violationReport());
 
     route.process(req, res);
 
-    expect(statsd.increment).toHaveBeenCalledWith('waict.violation', 1, {
-      reason: 'missing_from_manifest',
-    });
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      'server.waict.violation',
+      expect.objectContaining({ reason: 'missing_from_manifest' })
+    );
   });
 
   it('processes every report in a batch', () => {
-    const { route, statsd } = build();
+    const { route } = build();
     const { req, res } = mockReqRes([
       violationReport({ reason: 'missing_from_manifest' }),
       violationReport({ reason: 'no_manifest_match' }),
@@ -150,35 +116,35 @@ describe('post-waict-report route', () => {
 
     route.process(req, res);
 
-    expect(statsd.increment).toHaveBeenCalledWith('waict.violation', 1, {
-      reason: 'missing_from_manifest',
-    });
-    expect(statsd.increment).toHaveBeenCalledWith('waict.violation', 1, {
-      reason: 'no_manifest_match',
-    });
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      'server.waict.violation',
+      expect.objectContaining({ reason: 'missing_from_manifest' })
+    );
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      'server.waict.violation',
+      expect.objectContaining({ reason: 'no_manifest_match' })
+    );
   });
 
   it('skips null / non-object report entries without throwing', () => {
-    const { route, statsd } = build();
+    const { route } = build();
     const { req, res } = mockReqRes([null, 'garbage', violationReport()]);
 
     expect(() => route.process(req, res)).not.toThrow();
-    // Only the one valid report produced a violation counter.
+    // Only the one valid report was logged.
     expect(
-      statsd.increment.mock.calls.filter((c) => c[0] === 'waict.violation')
-        .length
+      mockLogger.info.mock.calls.filter(
+        (c) => c[0] === 'server.waict.violation'
+      ).length
     ).toBe(1);
   });
 
   it('handles a report with no URL fields without throwing', () => {
-    const { route, statsd } = build();
+    const { route } = build();
     // A malformed/minimal report: no blockedURL, no documentURL.
     const { req, res } = mockReqRes([{ type: 'waict-violation', body: {} }]);
 
     expect(() => route.process(req, res)).not.toThrow();
-    expect(statsd.increment).toHaveBeenCalledWith('waict.violation', 1, {
-      reason: 'unknown',
-    });
     const logged = mockLogger.info.mock.calls.find(
       (c) => c[0] === 'server.waict.violation'
     )[1];
@@ -203,13 +169,6 @@ describe('post-waict-report route', () => {
       (c) => c[0] === 'server.waict.violation'
     )[1];
     expect(logged.blocked).toBe('https://accounts.firefox.com/scripts/app.js');
-  });
-
-  it('does not throw when statsd is not configured', () => {
-    const { route } = build({ statsd: undefined });
-    const { req, res } = mockReqRes([violationReport()]);
-    expect(() => route.process(req, res)).not.toThrow();
-    expect(res.json).toHaveBeenCalledWith({ success: true });
   });
 
   it('does not throw if processing a report throws (response already sent)', () => {

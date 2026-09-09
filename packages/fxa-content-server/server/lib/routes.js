@@ -69,7 +69,6 @@ module.exports = function (config, i18n, statsd, glean) {
       require('./routes/post-waict-report')({
         op: 'server.waict.violation',
         path: config.get('waict.reportUri'),
-        statsd,
       })
     );
   }
