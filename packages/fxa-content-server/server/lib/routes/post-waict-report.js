@@ -31,15 +31,6 @@ const STRING_TYPE = validation.TYPES.STRING;
 // request cannot be amplified into unbounded log/metric writes.
 const MAX_REPORTS_PER_REQUEST = 100;
 
-// The integrity-check outcomes WAICT can report. Used to allowlist the `reason`
-// StatsD tag so untrusted report bodies cannot create unbounded tag cardinality
-// (a metrics-store DoS). Unknown values are bucketed under `other`.
-const ALLOWED_REASONS = new Set([
-  'missing_from_manifest',
-  'no_manifest_match',
-  'invalid_manifest',
-]);
-
 // A single Reporting API report. Only the fields we read are declared; celebrate
 // is configured with stripUnknown for objects, so any other keys the browser
 // sends are dropped rather than logged.
@@ -72,8 +63,6 @@ const BODY_SCHEMA = joi
   );
 
 module.exports = function (options = {}) {
-  const statsd = options.statsd;
-
   return {
     method: 'post',
     path: options.path,
@@ -102,15 +91,6 @@ module.exports = function (options = {}) {
             body.documentURL || body.documentURI || report.url
           );
 
-          // Emit an operational counter so violations are alertable as a
-          // time-series, tagged by reason. The tag is allowlisted so untrusted
-          // report bodies cannot create unbounded metric cardinality.
-          if (statsd) {
-            statsd.increment('waict.violation', 1, {
-              reason: allowedReasonTag(body.reason),
-            });
-          }
-
           logger.info(options.op, {
             agent: req.get('User-Agent'),
             type: report.type,
@@ -129,14 +109,5 @@ module.exports = function (options = {}) {
   };
 };
 
-// Map an untrusted `reason` to a bounded-cardinality StatsD tag value.
-function allowedReasonTag(reason) {
-  if (!reason) {
-    return 'unknown';
-  }
-  return ALLOWED_REASONS.has(reason) ? reason : 'other';
-}
-
 module.exports.BODY_SCHEMA = BODY_SCHEMA;
 module.exports.MAX_REPORTS_PER_REQUEST = MAX_REPORTS_PER_REQUEST;
-module.exports.ALLOWED_REASONS = ALLOWED_REASONS;

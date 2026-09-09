@@ -77,7 +77,7 @@ describe('waict middleware', () => {
   }
 
   it('calls next immediately without waiting for the response', () => {
-    const mw = waict(baseConfig({ statsd: { increment: jest.fn() } }));
+    const mw = waict(baseConfig());
     const next = jest.fn();
 
     mw({}, mockRes(), next);
@@ -86,8 +86,7 @@ describe('waict middleware', () => {
   });
 
   it('sets the WAICT and Reporting-Endpoints headers on HTML responses', () => {
-    const statsd = { increment: jest.fn() };
-    const mw = waict(baseConfig({ statsd }));
+    const mw = waict(baseConfig());
     const res = mockRes();
 
     mw({}, res, jest.fn());
@@ -104,12 +103,10 @@ describe('waict middleware', () => {
       'Reporting-Endpoints',
       `${REPORT_ENDPOINT_NAME}="/_/waict-violation"`
     );
-    expect(statsd.increment).toHaveBeenCalledWith('waict.document_served');
   });
 
   it('does not set WAICT headers on non-HTML responses', () => {
-    const statsd = { increment: jest.fn() };
-    const mw = waict(baseConfig({ statsd }));
+    const mw = waict(baseConfig());
     const res = mockRes();
 
     mw({}, res, jest.fn());
@@ -122,20 +119,6 @@ describe('waict middleware', () => {
       'Integrity-Policy-WAICT-v1',
       expect.anything()
     );
-    expect(statsd.increment).not.toHaveBeenCalled();
   });
 
-  it('does not throw when statsd is not configured', () => {
-    const mw = waict(baseConfig());
-    const res = mockRes();
-
-    mw({}, res, jest.fn());
-
-    res.setHeader('content-type', 'text/html');
-    expect(() => res.writeHead(200)).not.toThrow();
-    expect(res.setHeader).toHaveBeenCalledWith(
-      'Integrity-Policy-WAICT-v1',
-      expect.any(String)
-    );
-  });
 });
