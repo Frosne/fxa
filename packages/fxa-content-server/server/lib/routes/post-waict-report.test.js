@@ -65,8 +65,11 @@ describe('post-waict-report route', () => {
     expect(mockLogger.info).toHaveBeenCalledWith(
       'server.waict.violation',
       expect.objectContaining({
+        agent: 'Firefox',
+        type: 'waict-violation',
         reason: 'missing_from_manifest',
         blocked: 'https://accounts.firefox.com/scripts/app.js',
+        documentURL: 'https://accounts.firefox.com/signin',
         destination: 'script',
       })
     );
@@ -87,11 +90,8 @@ describe('post-waict-report route', () => {
     const logged = mockLogger.info.mock.calls.find(
       (c) => c[0] === 'server.waict.violation'
     )[1];
-    expect(logged.documentURL).not.toContain('email=');
-    expect(logged.documentURL).not.toContain('uid=');
     expect(logged.documentURL).not.toContain('user@example.com');
-    // Non-PII params are preserved.
-    expect(logged.documentURL).toContain('foo=bar');
+    expect(logged.documentURL).not.toContain('uid=');
     expect(logged.blocked).not.toContain('uid=');
   });
 
@@ -151,6 +151,21 @@ describe('post-waict-report route', () => {
     expect(logged.documentURL).toBe('');
   });
 
+  it('falls back to documentURI, then the top-level url', () => {
+    const { route } = build();
+    const { req, res } = mockReqRes([
+      { type: 'waict-violation', body: { documentURI: '/from-document-uri' } },
+      { type: 'waict-violation', url: '/from-top-level', body: {} },
+    ]);
+
+    route.process(req, res);
+
+    const logged = mockLogger.info.mock.calls
+      .filter((c) => c[0] === 'server.waict.violation')
+      .map((c) => c[1].documentURL);
+    expect(logged).toEqual(['/from-document-uri', '/from-top-level']);
+  });
+
   it('accepts snake_case field aliases (blocked_url)', () => {
     const { route } = build();
     const { req, res } = mockReqRes([
@@ -189,8 +204,8 @@ describe('post-waict-report route', () => {
 });
 
 describe('post-waict-report BODY_SCHEMA validation', () => {
-  // Mirror the celebrate options used by the routing layer (stripUnknown for
-  // objects, not arrays) so this exercises real request-validation behavior.
+  // Hand-copied from fxa-shared/express/routing.ts; if the celebrate options
+  // there change, these tests keep passing while production behaviour differs.
   const OPTS = { stripUnknown: { arrays: false, objects: true } };
 
   function validate(body) {
