@@ -6,19 +6,17 @@
 
 const fs = require('fs');
 
-// Capture the logger instance the route obtains at require time so we can
-// assert on it. The name must start with `mock` for jest's hoisting rules.
+// The name must start with `mock` for jest's hoisting rules.
 const mockLogger = { warn: jest.fn(), info: jest.fn(), error: jest.fn() };
 jest.mock('../logging/log', () => () => mockLogger);
 jest.mock('fs');
 
 const getWaictManifest = require('./get-waict-manifest');
 
-function mockConfig(overrides = {}) {
+function mockConfig() {
   const values = {
     static_directory: 'app/dist',
     'waict.manifestPath': '/waict-manifest.json',
-    ...overrides,
   };
   return { get: (key) => values[key] };
 }
@@ -41,7 +39,7 @@ describe('get-waict-manifest route', () => {
     expect(route.path).toBe('/waict-manifest.json');
   });
 
-  it('serves the manifest with the WAICT content-type when present', () => {
+  it('serves the manifest with the WAICT content-type and revalidation', () => {
     const body = Buffer.from('{"hashes":{}}');
     fs.readFile.mockImplementation((file, cb) => cb(null, body));
 
@@ -49,23 +47,12 @@ describe('get-waict-manifest route', () => {
     const res = mockRes();
     route.process({}, res);
 
+    expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-cache');
     expect(res.type).toHaveBeenCalledWith(
       'application/waict-integrity-manifest'
     );
     expect(res.send).toHaveBeenCalledWith(body);
     expect(res.status).not.toHaveBeenCalled();
-  });
-
-  it('serves the manifest with a revalidating Cache-Control', () => {
-    fs.readFile.mockImplementation((file, cb) =>
-      cb(null, Buffer.from('{"hashes":{}}'))
-    );
-
-    const route = getWaictManifest(mockConfig());
-    const res = mockRes();
-    route.process({}, res);
-
-    expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-cache');
   });
 
   it('404s (not 500s) and logs a warning when the manifest is missing', () => {

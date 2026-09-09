@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const logger = require('../logging/log')();
 
+// Required by the WAICT spec; Firefox does not enforce it yet (bug 2025255).
 const MANIFEST_CONTENT_TYPE = 'application/waict-integrity-manifest';
 
 module.exports = function (config) {
