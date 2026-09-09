@@ -15,7 +15,6 @@ module.exports = function (grunt) {
     function () {
       const dist = grunt.config.get('yeoman.dist');
 
-      // Hash raw bytes; re-encoding would yield a permanently unmatchable hash.
       const hashes = new Set(
         grunt.file.expand({ cwd: dist }, '**/*.js').map((rel) =>
           crypto
@@ -28,7 +27,7 @@ module.exports = function (grunt) {
       const dest = path.join(dist, 'waict-manifest.json');
       grunt.file.write(
         dest,
-        JSON.stringify({ hashes: {}, any_hashes: [...hashes] }, null, 2)
+        JSON.stringify({ hashes: {}, any_hashes: [...hashes] })
       );
       grunt.log.writeln(
         'Wrote WAICT manifest: ' + hashes.size + ' hashes -> ' + dest
