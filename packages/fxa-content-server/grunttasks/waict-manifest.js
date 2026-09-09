@@ -25,6 +25,8 @@ module.exports = function (grunt) {
       );
 
       const dest = path.join(dist, 'waict-manifest.json');
+      // Targets the Gecko WAICT prototype (Firefox 150+),
+      // which parses the response body as bare JSON.
       grunt.file.write(
         dest,
         JSON.stringify({ hashes: {}, any_hashes: [...hashes] })
