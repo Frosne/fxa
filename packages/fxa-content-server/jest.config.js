@@ -21,7 +21,6 @@ module.exports = {
   // Coverage configuration (enabled via --coverage flag).
   collectCoverageFrom: [
     'server/lib/waict.js',
-    'server/lib/waict-manifest-builder.js',
     'server/lib/url-scrubber.js',
     'server/lib/routes/get-waict-manifest.js',
     'server/lib/routes/post-waict-report.js',
