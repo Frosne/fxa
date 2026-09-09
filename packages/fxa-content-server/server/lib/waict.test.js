@@ -18,17 +18,21 @@ function baseConfig(overrides = {}) {
 }
 
 describe('waict buildHeaderValue', () => {
-  it('emits the structured-field parameters in report mode', () => {
-    const value = buildHeaderValue(baseConfig());
+  it('interpolates every parameter from config', () => {
+    const value = buildHeaderValue(
+      baseConfig({
+        maxAge: 3600,
+        manifestPath: '/custom/manifest.json',
+        blockedDestinations: ['script', 'style'],
+      })
+    );
 
-    // Order matters for readability but the spec parses by name; assert each
-    // parameter is present and well-formed.
-    expect(value).toContain('max-age=0');
+    expect(value).toContain('max-age=3600');
     expect(value).toContain('mode=report');
-    expect(value).toContain('blocked-destinations=(script)');
+    expect(value).toContain('blocked-destinations=(script style)');
     expect(value).toContain(`endpoints=(${REPORT_ENDPOINT_NAME})`);
     // manifest is an sf-string and must be double-quoted.
-    expect(value).toContain('manifest="/waict-manifest.json"');
+    expect(value).toContain('manifest="/custom/manifest.json"');
   });
 
   it('is always non-blocking (mode=report), never enforcing', () => {
@@ -37,23 +41,8 @@ describe('waict buildHeaderValue', () => {
     expect(value).not.toContain('mode=enforce');
   });
 
-  it('joins multiple blocked destinations as a space-separated inner list', () => {
-    const value = buildHeaderValue(
-      baseConfig({ blockedDestinations: ['script', 'style'] })
-    );
-    expect(value).toContain('blocked-destinations=(script style)');
-  });
-
-  it('reflects the configured max-age', () => {
-    const value = buildHeaderValue(baseConfig({ maxAge: 3600 }));
-    expect(value).toContain('max-age=3600');
-  });
-
-  it('quotes the configured manifest path', () => {
-    const value = buildHeaderValue(
-      baseConfig({ manifestPath: '/custom/manifest.json' })
-    );
-    expect(value).toContain('manifest="/custom/manifest.json"');
+  it('names the report endpoint "default", the Reporting API fallback', () => {
+    expect(REPORT_ENDPOINT_NAME).toBe('default');
   });
 });
 

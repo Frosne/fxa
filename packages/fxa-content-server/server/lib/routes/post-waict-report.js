@@ -9,13 +9,6 @@
  * reports here via the Reporting API so we can find scripts whose hashes are
  * missing from, or do not match, the manifest. The Reporting API delivers a
  * JSON array of reports with content-type `application/reports+json`.
- *
- * The endpoint is unauthenticated by design (browsers POST reports with no
- * credentials), so every field is attacker-controlled. Input is constrained by
- * the joi `validate` block below - mirroring the sibling `post-csp.js` - which
- * caps the array length, bounds string sizes, and strips unknown keys. Never
- * trust these values: the `reason` metric tag is additionally allowlisted (see
- * below) so an attacker cannot blow up metric cardinality.
  */
 
 'use strict';
@@ -73,8 +66,6 @@ module.exports = function (options = {}) {
       // Acknowledge immediately; reports are best-effort telemetry.
       res.json({ success: true });
 
-      // The Reporting API sends an array of reports; older/other delivery may
-      // send a single object. Normalize to an array.
       const reports = Array.isArray(req.body) ? req.body : [req.body];
 
       // Guard the whole loop: the response is already sent, so a throw here
@@ -94,8 +85,7 @@ module.exports = function (options = {}) {
           logger.info(options.op, {
             agent: req.get('User-Agent'),
             type: report.type,
-            // The resource that failed integrity and the reason (e.g.
-            // missing_from_manifest, no_manifest_match, invalid_manifest).
+            // One of the WAICT spec's integrity-violation reasons.
             reason: body.reason,
             blocked: stripPIIFromUrl(blockedUrl),
             documentURL,
