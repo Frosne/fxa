@@ -5,8 +5,8 @@
 // Generate the WAICT integrity manifest from the built artifacts.
 
 'use strict';
+const crypto = require('crypto');
 const path = require('path');
-const { buildManifest } = require('../server/lib/waict-manifest-builder');
 
 module.exports = function (grunt) {
   grunt.registerTask(
@@ -15,16 +15,23 @@ module.exports = function (grunt) {
     function () {
       const dist = grunt.config.get('yeoman.dist');
 
-      const { manifest, count } = buildManifest({
-        files: grunt.file.expand({ cwd: dist }, '**/*.js'),
-        readBytes: (rel) =>
-          grunt.file.read(path.join(dist, rel), { encoding: null }),
-      });
+      // Hash raw bytes; re-encoding would yield a permanently unmatchable hash.
+      const hashes = new Set(
+        grunt.file.expand({ cwd: dist }, '**/*.js').map((rel) =>
+          crypto
+            .createHash('sha256')
+            .update(grunt.file.read(path.join(dist, rel), { encoding: null }))
+            .digest('base64')
+        )
+      );
 
       const dest = path.join(dist, 'waict-manifest.json');
-      grunt.file.write(dest, JSON.stringify(manifest, null, 2));
+      grunt.file.write(
+        dest,
+        JSON.stringify({ hashes: {}, any_hashes: [...hashes] }, null, 2)
+      );
       grunt.log.writeln(
-        'Wrote WAICT manifest: ' + count + ' hashes -> ' + dest
+        'Wrote WAICT manifest: ' + hashes.size + ' hashes -> ' + dest
       );
     }
   );
