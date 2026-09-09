@@ -2,12 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/**
- * Serve the WAICT integrity manifest. The manifest maps served script URLs to
- * their SHA-256 hashes and is generated at build time (see the `waict-manifest`
- * grunt task) into the static directory. It is served with the
- * `application/waict-integrity-manifest` content-type the WAICT spec requires.
- */
+// Serves the manifest written by the `generate-waict-manifest` grunt task.
 
 'use strict';
 const fs = require('fs');
@@ -19,9 +14,7 @@ const MANIFEST_CONTENT_TYPE = 'application/waict-integrity-manifest';
 module.exports = function (config) {
   const manifestFile = path.join(
     __dirname,
-    '..',
-    '..',
-    '..',
+    '../../..',
     config.get('static_directory'),
     'waict-manifest.json'
   );
@@ -32,9 +25,7 @@ module.exports = function (config) {
     process: function (req, res) {
       fs.readFile(manifestFile, (err, body) => {
         if (err) {
-          // The manifest is produced by the build; if it is missing the page
-          // still works (report mode is non-blocking) so log and 404 rather
-          // than erroring the request.
+          // Report mode is non-blocking, so a missing manifest is not fatal.
           logger.warn('waict.manifest.missing', { path: manifestFile });
           res.status(404).end();
           return;
@@ -48,5 +39,3 @@ module.exports = function (config) {
     },
   };
 };
-
-module.exports.MANIFEST_CONTENT_TYPE = MANIFEST_CONTENT_TYPE;

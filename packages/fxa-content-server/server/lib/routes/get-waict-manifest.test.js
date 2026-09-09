@@ -50,9 +50,6 @@ describe('get-waict-manifest route', () => {
     route.process({}, res);
 
     expect(res.type).toHaveBeenCalledWith(
-      getWaictManifest.MANIFEST_CONTENT_TYPE
-    );
-    expect(getWaictManifest.MANIFEST_CONTENT_TYPE).toBe(
       'application/waict-integrity-manifest'
     );
     expect(res.send).toHaveBeenCalledWith(body);
