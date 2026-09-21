@@ -3,39 +3,33 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 'use strict';
-const { URL } = require('url');
-
-const PII_QUERY_PARAMS = ['email', 'uid'];
+const url = require('url');
 
 function stripPIIFromUrl(urlToScrub) {
   if (!urlToScrub || typeof urlToScrub !== 'string') {
     return '';
   }
 
-  let parsed;
-  let isRelative = false;
+  let parsedUrl;
+
   try {
-    parsed = new URL(urlToScrub);
+    parsedUrl = url.parse(urlToScrub, true);
   } catch (e) {
-    try {
-      parsed = new URL(urlToScrub, 'https://waict.invalid');
-      isRelative = true;
-    } catch (e2) {
-      return urlToScrub;
-    }
+    // failed to parse the given url
+    return '';
   }
 
-  const hasPII =
-    PII_QUERY_PARAMS.some((p) => parsed.searchParams.has(p)) ||
-    parsed.hash !== '';
-  if (!hasPII) {
+  if (!parsedUrl.query.email && !parsedUrl.query.uid) {
     return urlToScrub;
   }
 
-  PII_QUERY_PARAMS.forEach((p) => parsed.searchParams.delete(p));
-  parsed.hash = '';
+  delete parsedUrl.query.email;
+  delete parsedUrl.query.uid;
 
-  return isRelative ? parsed.pathname + parsed.search : parsed.toString();
+  // delete parsedUrl.search or else format returns the old querystring.
+  delete parsedUrl.search;
+
+  return url.format(parsedUrl);
 }
 
 module.exports = { stripPIIFromUrl };

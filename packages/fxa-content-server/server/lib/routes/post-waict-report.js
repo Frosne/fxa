@@ -5,8 +5,8 @@
 /**
  * Collect WAICT integrity violation reports.
  * 
- * In report mode the browser does not block anything; it *only* sends `waict-violation`
- * reports via the Reporting API.
+ * In report mode the browser does not block anything; it *only* sends
+ * `integrity-violation` reports via the Reporting API.
  */
 
 'use strict';

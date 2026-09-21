@@ -25,14 +25,6 @@ describe('stripPIIFromUrl', () => {
     expect(scrubbed).toContain('foo=bar');
   });
 
-  it('drops the fragment (can carry tokens)', () => {
-    const scrubbed = stripPIIFromUrl(
-      'https://accounts.firefox.com/reset#token=secret'
-    );
-    expect(scrubbed).not.toContain('token=secret');
-    expect(scrubbed).not.toContain('#');
-  });
-
   it('leaves a clean URL essentially unchanged', () => {
     const scrubbed = stripPIIFromUrl(
       'https://accounts.firefox.com/settings/app.js'

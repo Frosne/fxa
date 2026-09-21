@@ -32565,6 +32565,8 @@ __metadata:
     http-proxy-middleware: "npm:^2.0.10"
     i18n-abide: "npm:0.0.26"
     install: "npm:0.13.0"
+    jest: "npm:^29.7.0"
+    jest-junit: "npm:^16.0.0"
     joi: "npm:^17.13.3"
     jquery: "npm:3.7.0"
     jquery-modal: "https://github.com/mozilla-fxa/jquery-modal.git#0576775d1b4590314b114386019f4c7421c77503"
