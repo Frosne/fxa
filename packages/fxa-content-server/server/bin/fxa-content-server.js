@@ -180,7 +180,7 @@ function makeApp() {
       // json file types,
       // all json content-types
       // csp reports
-      // WAICT / Reporting API violation reports
+      // WAICT reports
       type: [
         'json',
         '*/json',

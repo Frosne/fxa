@@ -17,6 +17,7 @@ module.exports = function (config) {
     __dirname,
     '../../..',
     config.get('static_directory'),
+    // don't forget to change in the appropriate test file if changed here
     'waict-manifest.json'
   );
 

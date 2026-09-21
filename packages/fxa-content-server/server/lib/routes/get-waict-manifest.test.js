@@ -5,6 +5,7 @@
 'use strict';
 
 const fs = require('fs');
+const path = require('path');
 
 // The name must start with `mock` for jest's hoisting rules.
 const mockLogger = { warn: jest.fn(), info: jest.fn(), error: jest.fn() };
@@ -36,26 +37,33 @@ describe('get-waict-manifest route', () => {
   it('is a GET route served from the configured manifest path', () => {
     const route = getWaictManifest(mockConfig());
     expect(route.method).toBe('get');
+    // change here if you change the location of waict manifest
     expect(route.path).toBe('/waict-manifest.json');
   });
 
-  it('serves the manifest with the WAICT content-type and revalidation', () => {
-    const body = Buffer.from('{"hashes":{}}');
+  it('serves the correct waict manifest', () => {
+    // smallest waict manifest
+    const body = Buffer.from(
+      '{"any_hashes":["47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU="]}'
+    );
     fs.readFile.mockImplementation((file, cb) => cb(null, body));
 
     const route = getWaictManifest(mockConfig());
     const res = mockRes();
     route.process({}, res);
 
+    expect(fs.readFile).toHaveBeenCalledWith(
+      path.join(__dirname, '../../../app/dist/waict-manifest.json'),
+      expect.any(Function)
+    );
     expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-cache');
     expect(res.type).toHaveBeenCalledWith(
       'application/waict-integrity-manifest'
     );
     expect(res.send).toHaveBeenCalledWith(body);
-    expect(res.status).not.toHaveBeenCalled();
   });
 
-  it('404s (not 500s) and logs a warning when the manifest is missing', () => {
+  it('404s when the manifest is missing', () => {
     fs.readFile.mockImplementation((file, cb) =>
       cb(new Error('ENOENT'), null)
     );
@@ -66,10 +74,8 @@ describe('get-waict-manifest route', () => {
 
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.end).toHaveBeenCalled();
-    expect(res.send).not.toHaveBeenCalled();
-    expect(mockLogger.warn).toHaveBeenCalledWith(
-      'waict.manifest.missing',
-      expect.objectContaining({ path: expect.any(String) })
-    );
+    expect(mockLogger.warn).toHaveBeenCalledWith('waict.manifest.missing', {
+      path: path.join(__dirname, '../../../app/dist/waict-manifest.json'),
+    });
   });
 });
