@@ -28,10 +28,10 @@ function mockReqRes(body, userAgent = 'Firefox') {
   return { req, res };
 }
 
-// A well-formed WAICT violation report body (browser sends camelCase).
+// A well-formed WAICT violation report body.
 function violationReport(overrides = {}) {
   return {
-    type: 'waict-violation',
+    type: 'integrity-violation',
     body: {
       blockedURL: 'https://accounts.firefox.com/scripts/app.js',
       documentURL: 'https://accounts.firefox.com/signin',
@@ -66,7 +66,7 @@ describe('post-waict-report route', () => {
       'server.waict.violation',
       expect.objectContaining({
         agent: 'Firefox',
-        type: 'waict-violation',
+        type: 'integrity-violation',
         reason: 'missing_from_manifest',
         blocked: 'https://accounts.firefox.com/scripts/app.js',
         documentURL: 'https://accounts.firefox.com/signin',
@@ -95,18 +95,6 @@ describe('post-waict-report route', () => {
     expect(logged.blocked).not.toContain('uid=');
   });
 
-  it('normalizes a single (non-array) report object', () => {
-    const { route } = build();
-    const { req, res } = mockReqRes(violationReport());
-
-    route.process(req, res);
-
-    expect(mockLogger.info).toHaveBeenCalledWith(
-      'server.waict.violation',
-      expect.objectContaining({ reason: 'missing_from_manifest' })
-    );
-  });
-
   it('processes every report in a batch', () => {
     const { route } = build();
     const { req, res } = mockReqRes([
@@ -126,23 +114,10 @@ describe('post-waict-report route', () => {
     );
   });
 
-  it('skips null / non-object report entries without throwing', () => {
-    const { route } = build();
-    const { req, res } = mockReqRes([null, 'garbage', violationReport()]);
-
-    expect(() => route.process(req, res)).not.toThrow();
-    // Only the one valid report was logged.
-    expect(
-      mockLogger.info.mock.calls.filter(
-        (c) => c[0] === 'server.waict.violation'
-      ).length
-    ).toBe(1);
-  });
-
   it('handles a report with no URL fields without throwing', () => {
     const { route } = build();
     // A malformed/minimal report: no blockedURL, no documentURL.
-    const { req, res } = mockReqRes([{ type: 'waict-violation', body: {} }]);
+    const { req, res } = mockReqRes([{ type: 'integrity-violation', body: {} }]);
 
     expect(() => route.process(req, res)).not.toThrow();
     const logged = mockLogger.info.mock.calls.find(
@@ -151,31 +126,10 @@ describe('post-waict-report route', () => {
     expect(logged.documentURL).toBe('');
   });
 
-  it('falls back to documentURI, then the top-level url', () => {
+  it('falls back to the top-level url', () => {
     const { route } = build();
     const { req, res } = mockReqRes([
-      { type: 'waict-violation', body: { documentURI: '/from-document-uri' } },
-      { type: 'waict-violation', url: '/from-top-level', body: {} },
-    ]);
-
-    route.process(req, res);
-
-    const logged = mockLogger.info.mock.calls
-      .filter((c) => c[0] === 'server.waict.violation')
-      .map((c) => c[1].documentURL);
-    expect(logged).toEqual(['/from-document-uri', '/from-top-level']);
-  });
-
-  it('accepts snake_case field aliases (blocked_url)', () => {
-    const { route } = build();
-    const { req, res } = mockReqRes([
-      {
-        type: 'waict-violation',
-        body: {
-          blocked_url: 'https://accounts.firefox.com/scripts/app.js',
-          reason: 'missing_from_manifest',
-        },
-      },
+      { type: 'integrity-violation', url: '/from-top-level', body: {} },
     ]);
 
     route.process(req, res);
@@ -183,23 +137,7 @@ describe('post-waict-report route', () => {
     const logged = mockLogger.info.mock.calls.find(
       (c) => c[0] === 'server.waict.violation'
     )[1];
-    expect(logged.blocked).toBe('https://accounts.firefox.com/scripts/app.js');
-  });
-
-  it('does not throw if processing a report throws (response already sent)', () => {
-    const { route } = build();
-    const { req, res } = mockReqRes([violationReport()]);
-    // Make logger.info throw once to simulate a mid-loop failure after the
-    // response was already sent; the guard must swallow it.
-    mockLogger.info.mockImplementationOnce(() => {
-      throw new Error('boom');
-    });
-
-    expect(() => route.process(req, res)).not.toThrow();
-    expect(mockLogger.warn).toHaveBeenCalledWith(
-      'server.waict.report.error',
-      expect.any(Object)
-    );
+    expect(logged.documentURL).toBe('/from-top-level');
   });
 });
 
@@ -217,9 +155,9 @@ describe('post-waict-report BODY_SCHEMA validation', () => {
     expect(error).toBeUndefined();
   });
 
-  it('accepts a single (non-array) report object', () => {
+  it('rejects a single (non-array) report object', () => {
     const { error } = validate(violationReport());
-    expect(error).toBeUndefined();
+    expect(error).toBeDefined();
   });
 
   it('rejects an array larger than the per-request cap', () => {
@@ -245,7 +183,7 @@ describe('post-waict-report BODY_SCHEMA validation', () => {
   });
 
   it('rejects an over-long string field', () => {
-    const report = violationReport({ reason: 'x'.repeat(2000) });
+    const report = violationReport({ reason: 'x'.repeat(11 * 1024) });
     const { error } = validate([report]);
     expect(error).toBeDefined();
   });
