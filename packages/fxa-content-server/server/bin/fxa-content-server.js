@@ -71,6 +71,9 @@ const cspRulesBlocking = require('../lib/csp/blocking')(config);
 const cspRulesReportOnly = require('../lib/csp/report-only')(config);
 const coop = require('../lib/coop');
 const waict = require('../lib/waict');
+const {
+  MANIFEST_FILENAME: WAICT_MANIFEST_FILENAME,
+} = require('../lib/routes/get-waict-manifest');
 const glean = require('../lib/glean')(config.getProperties());
 
 const STATIC_DIRECTORY = path.join(
@@ -150,14 +153,24 @@ function makeApp() {
   app.use(coop());
 
   if (config.get('waict.enabled')) {
-    app.use(
-      waict({
-        manifestPath: config.get('waict.manifestPath'),
-        maxAge: config.get('waict.maxAge'),
-        blockedDestinations: config.get('waict.blockedDestinations'),
-        reportUri: config.get('waict.reportUri'),
-      })
-    );
+    // without a manifest every script will report 'invalid_manifest'
+    // I've disabled it for now, I don't see a good way to check that
+    // we don't disable WAICT by mistake. Maybe a test that a manifest
+    // is always generated?
+
+    // const manifestFile = path.join(STATIC_DIRECTORY, WAICT_MANIFEST_FILENAME);
+    // if (fs.existsSync(manifestFile)) {
+      app.use(
+        waict({
+          manifestPath: config.get('waict.manifestPath'),
+          maxAge: config.get('waict.maxAge'),
+          blockedDestinations: config.get('waict.blockedDestinations'),
+          reportUri: config.get('waict.reportUri'),
+        })
+      );
+    // } else {
+    //   logger.error('waict.disabled.manifest.missing', { path: manifestFile });
+    // }
   }
 
   app.disable('x-powered-by');

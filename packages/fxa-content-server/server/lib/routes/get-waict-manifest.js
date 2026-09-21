@@ -12,13 +12,15 @@ const logger = require('../logging/log')();
 // Required by the WAICT spec; Firefox does not enforce it yet (bug 2025255).
 const MANIFEST_CONTENT_TYPE = 'application/waict-integrity-manifest';
 
+// don't forget to change in the appropriate test file if changed here
+const MANIFEST_FILENAME = 'waict-manifest.json';
+
 module.exports = function (config) {
   const manifestFile = path.join(
     __dirname,
     '../../..',
     config.get('static_directory'),
-    // don't forget to change in the appropriate test file if changed here
-    'waict-manifest.json'
+    MANIFEST_FILENAME
   );
 
   return {
@@ -41,3 +43,5 @@ module.exports = function (config) {
     },
   };
 };
+
+module.exports.MANIFEST_FILENAME = MANIFEST_FILENAME;
