@@ -149,6 +149,14 @@ const conf = (module.exports = convict({
       env: 'WAICT_MANIFEST_PATH',
       format: String,
     },
+    // Report mode does not block loading the resources
+    // Be careful while changing to 'enforce' mode
+    mode: {
+      default: 'report',
+      doc: 'Value of the WAICT header "mode" directive',
+      env: 'WAICT_MODE',
+      format: ['report'],
+    },
     maxAge: {
       default: 0,
       doc: 'Value of the WAICT header "max-age" directive, in seconds',

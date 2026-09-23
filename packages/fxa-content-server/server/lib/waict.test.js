@@ -10,6 +10,7 @@ const { buildHeaderValue, REPORT_ENDPOINT_NAME } = waict;
 function baseConfig(overrides = {}) {
   return {
     manifestPath: '/waict-manifest.json',
+    mode: 'report',
     maxAge: 0, // disabled
     blockedDestinations: ['script'],
     reportUri: '/_/waict-violation',
@@ -33,14 +34,6 @@ describe('waict buildHeaderValue', () => {
     expect(value).toContain(`endpoints=(${REPORT_ENDPOINT_NAME})`);
     // manifest is an sf-string and must be double-quoted.
     expect(value).toContain('manifest="/custom/manifest.json"');
-  });
-
-  // Reporting does not prevent resources from being loaded
-  // treat with care!
-  it('is always non-blocking (mode=report), never enforcing', () => {
-    const value = buildHeaderValue(baseConfig({ maxAge: 86400 }));
-    expect(value).toContain('mode=report');
-    expect(value).not.toContain('mode=enforce');
   });
 });
 

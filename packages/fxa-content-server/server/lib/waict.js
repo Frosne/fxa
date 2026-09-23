@@ -26,7 +26,7 @@ function buildHeaderValue(config) {
 
   return [
     `max-age=${config.maxAge}`, // is not used (0) in the initial version
-    'mode=report', // report does not block loading the resources
+    `mode=${config.mode}`,
     `blocked-destinations=(${destinations})`, 
     `endpoints=(${REPORT_ENDPOINT_NAME})`,
     `manifest="${config.manifestPath}"`, 

@@ -163,6 +163,7 @@ function makeApp() {
       app.use(
         waict({
           manifestPath: config.get('waict.manifestPath'),
+          mode: config.get('waict.mode'),
           maxAge: config.get('waict.maxAge'),
           blockedDestinations: config.get('waict.blockedDestinations'),
           reportUri: config.get('waict.reportUri'),
