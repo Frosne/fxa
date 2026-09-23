@@ -8,6 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 const logger = require('../logging/log')();
+const { STATIC_RESOURCE_URL_PLACEHOLDER } = require('../waict');
 
 // Required by the WAICT spec; Firefox does not enforce it yet (bug 2025255).
 const MANIFEST_CONTENT_TYPE = 'application/waict-integrity-manifest';
@@ -22,6 +23,7 @@ module.exports = function (config) {
     config.get('static_directory'),
     MANIFEST_FILENAME
   );
+  const staticResourceUrl = config.get('static_resource_url');
 
   return {
     method: 'get',
@@ -38,7 +40,12 @@ module.exports = function (config) {
         // Revalidate always; a stale manifest reports as a false violation.
         res.setHeader('Cache-Control', 'no-cache');
         res.type(MANIFEST_CONTENT_TYPE);
-        res.send(body);
+        res.send(
+          String(body).replaceAll(
+            STATIC_RESOURCE_URL_PLACEHOLDER,
+            staticResourceUrl
+          )
+        );
       });
     },
   };

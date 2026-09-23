@@ -12,6 +12,9 @@ const htmlOnly = require('./html-middleware');
 // parameter.
 const REPORT_ENDPOINT_NAME = 'default';
 
+// Replaced with static_resource_url by the manifest route.
+const STATIC_RESOURCE_URL_PLACEHOLDER = '{{{ staticResourceUrl }}}';
+
 /**
  * Build the `Integrity-Policy-WAICT-v1` structured-field header value.
  */
@@ -47,3 +50,4 @@ module.exports = function (config) {
 
 module.exports.buildHeaderValue = buildHeaderValue;
 module.exports.REPORT_ENDPOINT_NAME = REPORT_ENDPOINT_NAME;
+module.exports.STATIC_RESOURCE_URL_PLACEHOLDER = STATIC_RESOURCE_URL_PLACEHOLDER;

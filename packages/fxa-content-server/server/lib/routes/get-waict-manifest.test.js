@@ -17,6 +17,7 @@ const getWaictManifest = require('./get-waict-manifest');
 function mockConfig() {
   const values = {
     static_directory: 'app/dist',
+    static_resource_url: 'https://cdn.example.com',
     'waict.manifestPath': '/waict-manifest.json',
   };
   return { get: (key) => values[key] };
@@ -42,9 +43,8 @@ describe('get-waict-manifest route', () => {
   });
 
   it('serves the correct waict manifest', () => {
-    // smallest waict manifest
     const body = Buffer.from(
-      '{"any_hashes":["47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU="]}'
+      '{"hashes":{"{{{ staticResourceUrl }}}/bundle/app.bundle.js":"47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU="}}'
     );
     fs.readFile.mockImplementation((file, cb) => cb(null, body));
 
@@ -60,7 +60,35 @@ describe('get-waict-manifest route', () => {
     expect(res.type).toHaveBeenCalledWith(
       'application/waict-integrity-manifest'
     );
-    expect(res.send).toHaveBeenCalledWith(body);
+    expect(res.send).toHaveBeenCalledWith(
+      '{"hashes":{"https://cdn.example.com/bundle/app.bundle.js":"47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU="}}'
+    );
+  });
+
+  it('replaces every static resource URL placeholder', () => {
+    const hash = '47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=';
+    const body = Buffer.from(
+      JSON.stringify({
+        hashes: {
+          '{{{ staticResourceUrl }}}/bundle/app.bundle.js': hash,
+          '{{{ staticResourceUrl }}}/bundle/head.bundle.js': hash,
+          'https://cdn.accounts.firefox.com/settings/prod/static/js/main.js':
+            hash,
+        },
+      })
+    );
+    fs.readFile.mockImplementation((file, cb) => cb(null, body));
+
+    const res = mockRes();
+    getWaictManifest(mockConfig()).process({}, res);
+
+    const served = res.send.mock.calls[0][0];
+    expect(served).not.toContain('{{{');
+    expect(Object.keys(JSON.parse(served).hashes)).toEqual([
+      'https://cdn.example.com/bundle/app.bundle.js',
+      'https://cdn.example.com/bundle/head.bundle.js',
+      'https://cdn.accounts.firefox.com/settings/prod/static/js/main.js',
+    ]);
   });
 
   it('404s when the manifest is missing', () => {
