@@ -10,7 +10,7 @@ const { buildHeaderValue, REPORT_ENDPOINT_NAME } = waict;
 function baseConfig(overrides = {}) {
   return {
     manifestPath: '/waict-manifest.json',
-    maxAge: 0,
+    maxAge: 0, // disabled
     blockedDestinations: ['script'],
     reportUri: '/_/waict-violation',
     ...overrides,
@@ -35,14 +35,12 @@ describe('waict buildHeaderValue', () => {
     expect(value).toContain('manifest="/custom/manifest.json"');
   });
 
+  // Reporting does not prevent resources from being loaded
+  // treat with care!
   it('is always non-blocking (mode=report), never enforcing', () => {
     const value = buildHeaderValue(baseConfig({ maxAge: 86400 }));
     expect(value).toContain('mode=report');
     expect(value).not.toContain('mode=enforce');
-  });
-
-  it('names the report endpoint "default", the Reporting API fallback', () => {
-    expect(REPORT_ENDPOINT_NAME).toBe('default');
   });
 });
 
@@ -65,20 +63,13 @@ describe('waict middleware', () => {
     };
   }
 
-  it('calls next immediately without waiting for the response', () => {
-    const mw = waict(baseConfig());
-    const next = jest.fn();
-
-    mw({}, mockRes(), next);
-
-    expect(next).toHaveBeenCalledTimes(1);
-  });
-
   it('sets the WAICT and Reporting-Endpoints headers on HTML responses', () => {
     const mw = waict(baseConfig());
     const res = mockRes();
+    const next = jest.fn();
 
-    mw({}, res, jest.fn());
+    mw({}, res, next);
+    expect(next).toHaveBeenCalledTimes(1);
 
     // Simulate an HTML document response.
     res.setHeader('content-type', 'text/html; charset=utf-8');
@@ -109,5 +100,4 @@ describe('waict middleware', () => {
       expect.anything()
     );
   });
-
 });

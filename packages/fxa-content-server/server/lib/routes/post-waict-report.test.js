@@ -119,7 +119,8 @@ describe('post-waict-report route', () => {
     // A malformed/minimal report: no blockedURL, no documentURL.
     const { req, res } = mockReqRes([{ type: 'integrity-violation', body: {} }]);
 
-    expect(() => route.process(req, res)).not.toThrow();
+    route.process(req, res);
+
     const logged = mockLogger.info.mock.calls.find(
       (c) => c[0] === 'server.waict.violation'
     )[1];
