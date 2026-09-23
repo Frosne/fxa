@@ -140,6 +140,22 @@ describe('post-waict-report route', () => {
     )[1];
     expect(logged.documentURL).toBe('/from-top-level');
   });
+
+  it('logs only integrity-violation reports from a mixed batch', () => {
+    const { route } = build();
+    const { req, res } = mockReqRes([
+      { type: 'deprecation', body: {} },
+      violationReport(),
+    ]);
+
+    route.process(req, res);
+
+    expect(mockLogger.info).toHaveBeenCalledTimes(1);
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      'server.waict.violation',
+      expect.objectContaining({ type: 'integrity-violation' })
+    );
+  });
 });
 
 describe('post-waict-report BODY_SCHEMA validation', () => {

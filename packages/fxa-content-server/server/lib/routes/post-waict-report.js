@@ -51,6 +51,9 @@ module.exports = function (options = {}) {
       res.json({ success: true });
 
       req.body.forEach((report) => {
+        if (report.type !== 'integrity-violation') {
+          return;
+        }
         const body = report.body || {};
 
         const entry = {
