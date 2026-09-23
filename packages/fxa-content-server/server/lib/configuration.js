@@ -136,6 +136,46 @@ const conf = (module.exports = convict({
       format: Array,
     },
   },
+  waict: {
+    enabled: {
+      default: false,
+      doc: 'Send the "Integrity-Policy-WAICT-v1" header in report mode',
+      env: 'WAICT_ENABLED',
+      format: Boolean,
+    },
+    manifestPath: {
+      default: '/waict-manifest.json',
+      doc: 'URL path the WAICT integrity manifest is served from',
+      env: 'WAICT_MANIFEST_PATH',
+      format: String,
+    },
+    // Report mode does not block loading the resources
+    // Be careful while changing to 'enforce' mode
+    mode: {
+      default: 'report',
+      doc: 'Value of the WAICT header "mode" directive',
+      env: 'WAICT_MODE',
+      format: ['report'],
+    },
+    maxAge: {
+      default: 0,
+      doc: 'Value of the WAICT header "max-age" directive, in seconds',
+      env: 'WAICT_MAX_AGE',
+      format: 'nat',
+    },
+    blockedDestinations: {
+      default: ['script'],
+      doc: 'Fetch destinations the WAICT manifest is enforced against',
+      env: 'WAICT_BLOCKED_DESTINATIONS',
+      format: Array,
+    },
+    reportUri: {
+      default: '/_/waict-violation',
+      doc: 'Location reports for WAICT violations are sent to',
+      env: 'WAICT_REPORT_URI',
+      format: String,
+    },
+  },
   disable_locale_check: {
     default: false,
     doc: 'Skip checking for gettext .mo files for supported locales',
